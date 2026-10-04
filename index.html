@@ -3,31 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aktivasi Kartu Ulasan</title>
+<meta name="color-scheme" content="light">
+<title>Kartu Ulasan</title>
 <style>
-  :root{--bg:#f4f7f5;--card:#fff;--ink:#14201b;--mute:#5d6b64;--line:#d5ded9;--accent:#1b7f5c;--err:#b3261e}
-  @media (prefers-color-scheme:dark){:root{--bg:#101714;--card:#18221d;--ink:#e8f0ec;--mute:#93a39b;--line:#2c3a33;--accent:#4cc596;--err:#ff8a80}}
+  :root{color-scheme:light;--ink:#111827;--mute:#6b7280;--line:#e5e7eb;--blue:#2563eb;--blue-d:#1d4ed8;--err:#dc2626}
   *{box-sizing:border-box}
   html,body{margin:0;min-height:100%}
-  body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;padding:24px 16px}
+  body{background:#fff;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;padding:24px 16px}
   main{width:100%;max-width:420px;margin-top:8vh}
-  .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
+  .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px}
   h1{font-size:1.4rem;margin:0 0 6px;line-height:1.25}
   p{margin:0 0 16px;color:var(--mute)}
   label{display:block;font-weight:600;margin:16px 0 6px}
-  input{width:100%;padding:12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px}
-  input:focus{outline:2px solid var(--accent);outline-offset:1px}
-  button{width:100%;margin-top:20px;padding:13px;font:inherit;font-weight:600;color:#fff;background:var(--accent);border:0;border-radius:10px;cursor:pointer}
-  button:disabled{opacity:.6}
+  input{width:100%;padding:12px;font:inherit;color:var(--ink);background:#fff;border:1px solid #d1d5db;border-radius:10px}
+  input:focus{outline:2px solid var(--blue);outline-offset:1px}
+  input.bad{border-color:var(--err);outline:2px solid var(--err);outline-offset:1px}
+  .btn{display:block;width:100%;margin-top:20px;padding:13px;font:inherit;font-weight:600;text-align:center;text-decoration:none;color:#fff;background:var(--blue);border:0;border-radius:10px;cursor:pointer}
+  .btn:hover{background:var(--blue-d)}
+  .btn:disabled{opacity:.6}
+  .btn.alt{background:#fff;color:var(--ink);border:1px solid #d1d5db;font-weight:500;margin-top:10px}
+  .btn.alt:hover{background:#f9fafb}
   .msg{margin-top:14px;font-weight:600}
-  .err{color:var(--err)} .ok{color:var(--accent)}
-  .small{margin-top:18px;font-size:.9rem}
-  a{color:var(--accent)}
+  .err{color:var(--err)} .ok{color:var(--blue)}
+  a{color:var(--blue)}
   .hint{margin:6px 0 0;font-size:.88rem;color:var(--mute)}
+  .stars{display:flex;justify-content:space-between;gap:6px;margin-top:8px}
+  .star{flex:1;font-size:2rem;line-height:1;padding:12px 0;background:#fff;color:#d1d5db;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+  .star:hover,.star:active,.star:focus{color:#f59e0b;border-color:#f59e0b;outline:none}
+  .credit{margin-top:16px;text-align:center;font-size:.8rem;color:#9ca3af}
 </style>
 </head>
 <body>
-<main><div class="box" id="app"><p>Memuat…</p></div></main>
+<main>
+  <div class="box" id="app"><p>Memuat…</p></div>
+  <div class="credit">by nfcku.my.id</div>
+</main>
 <script>
 const SUPABASE_URL = "https://nycanjxfidtdtyqaredq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_VP2AWKWxb41jS4f21z33Fg_vXZKGwzr";
@@ -40,7 +50,7 @@ async function rpc(fn, args) {
     headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
     body: JSON.stringify(args)
   });
-  if (!res.ok) throw new Error("Gagal terhubung ke server");
+  if (!res.ok) throw new Error("Gagal terhubung ke server. Coba lagi.");
   return res.json();
 }
 
@@ -50,7 +60,7 @@ function validUrl(u) {
 }
 
 const FINDER = "https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder";
-const HINT = `Tempel <b>Place ID</b> toko (contoh: ChIJ...) atau link tujuan (https://...). <a href="${FINDER}" target="_blank" rel="noopener">Cari Place ID toko di sini</a>`;
+const HINT_URL = `Tempel <b>Place ID</b> toko (contoh: ChIJ...) atau link tujuan (https://...). <a href="${FINDER}" target="_blank" rel="noopener">Cari Place ID toko di sini</a>`;
 
 // Link biasa dipakai apa adanya; Place ID diubah jadi link tulis ulasan Google
 function toTarget(input) {
@@ -59,52 +69,71 @@ function toTarget(input) {
   if (/^[A-Za-z0-9_-]{20,}$/.test(v)) return "https://search.google.com/local/writereview?placeid=" + v;
   return null;
 }
-const BAD_TARGET = "Isi dengan Place ID (contoh: ChIJ...) atau link lengkap yang diawali https://";
+
+// Nomor WhatsApp -> format 62xxxxxxxxxx (null kalau tidak valid)
+function normWa(raw) {
+  let d = raw.trim().replace(/[\s\-+().]/g, "");
+  if (!/^\d+$/.test(d)) return null;
+  if (d.startsWith("0")) d = "62" + d.slice(1);
+  else if (d.startsWith("8")) d = "62" + d;
+  return d.length >= 10 && d.length <= 15 ? d : null;
+}
+
+class BadData extends Error {
+  constructor(ids) { super("Data Anda salah. Periksa kembali isian yang bertanda merah."); this.ids = ids; }
+}
 
 function go(url) { window.location.replace(url); }
-
 function show(html) { app.innerHTML = html; }
+const val = id => document.getElementById(id).value.trim();
 
-function formView({ title, desc, fields, button, onSubmit, footer }) {
+function formView({ title, desc, fields, button, onSubmit }) {
   show(`
     <h1>${title}</h1><p>${desc}</p>
     <form id="f" novalidate>
       ${fields.map(f => `<label for="${f.id}">${f.label}</label>
-        <input id="${f.id}" type="${f.type}" placeholder="${f.ph || ""}" autocomplete="off" required>
+        <input id="${f.id}" type="${f.type}" placeholder="${f.ph || ""}" autocomplete="off"${f.mode ? ` inputmode="${f.mode}"` : ""}>
         ${f.hint ? `<p class="hint">${f.hint}</p>` : ""}`).join("")}
-      <button type="submit">${button}</button>
+      <button class="btn" type="submit">${button}</button>
       <div class="msg" id="msg" role="status"></div>
-    </form>
-    ${footer || ""}`);
+    </form>`);
   const form = document.getElementById("f");
   const msg = document.getElementById("msg");
   const btn = form.querySelector("button");
   form.addEventListener("submit", async e => {
     e.preventDefault();
     msg.className = "msg"; msg.textContent = "";
+    form.querySelectorAll("input").forEach(i => i.classList.remove("bad"));
     btn.disabled = true;
     try { await onSubmit(msg); }
-    catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+    catch (err) {
+      msg.className = "msg err"; msg.textContent = err.message;
+      (err.ids || []).forEach(id => document.getElementById(id).classList.add("bad"));
+    }
     btn.disabled = false;
   });
 }
 
-const val = id => document.getElementById(id).value.trim();
-
 async function activation(code) {
   formView({
     title: "Aktifkan kartu ini",
-    desc: "Masukkan Place ID toko (atau link tujuan) dan buat kode rahasia untuk mengubahnya nanti.",
+    desc: "Isi data toko dan buat kode rahasia untuk mengubahnya nanti.",
     fields: [
-      { id: "url", label: "Place ID atau link tujuan", type: "text", ph: "ChIJ... atau https://...", hint: HINT },
-      { id: "secret", label: "Kode rahasia", type: "password", ph: "Minimal 4 karakter" }
+      { id: "url", label: "Place ID atau link tujuan", type: "text", ph: "ChIJ... atau https://...", hint: HINT_URL },
+      { id: "wa", label: "Nomor WhatsApp (opsional)", type: "tel", mode: "tel", ph: "08123456789",
+        hint: "Pelanggan yang memberi bintang 1-3 bisa memilih chat ke nomor ini. Kosongkan jika tidak mau memakai fitur ini." },
+      { id: "secret", label: "Kode rahasia", type: "password", ph: "Minimal 6 karakter" }
     ],
     button: "Aktifkan kartu",
     onSubmit: async msg => {
       const url = toTarget(val("url")), secret = val("secret");
-      if (!url) throw new Error(BAD_TARGET);
-      if (secret.length < 4) throw new Error("Kode rahasia minimal 4 karakter.");
-      const ok = await rpc("activate_card", { p_code: code, p_url: url, p_secret: secret });
+      const waRaw = val("wa"), wa = waRaw ? normWa(waRaw) : "";
+      const bad = [];
+      if (!url) bad.push("url");
+      if (waRaw && !wa) bad.push("wa");
+      if (secret.length < 6) bad.push("secret");
+      if (bad.length) throw new BadData(bad);
+      const ok = await rpc("activate_card", { p_code: code, p_url: url, p_wa: wa, p_secret: secret });
       if (!ok) throw new Error("Kartu ini sudah aktif.");
       msg.className = "msg ok"; msg.textContent = "Kartu aktif. Mengarahkan…";
       setTimeout(() => go(url), 700);
@@ -114,27 +143,59 @@ async function activation(code) {
 
 function editor(code) {
   formView({
-    title: "Ubah tujuan kartu",
-    desc: "Masukkan kode rahasia kartu dan Place ID atau link tujuan yang baru.",
+    title: "Ubah data kartu",
+    desc: "Masukkan kode rahasia, lalu isi hanya bagian yang ingin diubah.",
     fields: [
       { id: "secret", label: "Kode rahasia", type: "password" },
-      { id: "url", label: "Place ID atau link tujuan baru", type: "text", ph: "ChIJ... atau https://...", hint: HINT }
+      { id: "url", label: "Place ID atau link tujuan baru", type: "text", ph: "ChIJ... atau https://...", hint: HINT_URL },
+      { id: "wa", label: "Nomor WhatsApp baru", type: "tel", mode: "tel", ph: "08123456789",
+        hint: "Kosongkan jika tidak diubah. Isi tanda - untuk menghapus nomor." }
     ],
-    button: "Simpan link baru",
+    button: "Simpan perubahan",
     onSubmit: async msg => {
-      const url = toTarget(val("url")), secret = val("secret");
-      if (!url) throw new Error(BAD_TARGET);
-      const ok = await rpc("update_card", { p_code: code, p_secret: secret, p_url: url });
-      if (!ok) throw new Error("Kode rahasia salah.");
-      msg.className = "msg ok"; msg.textContent = "Tujuan kartu berhasil diubah.";
+      const secret = val("secret"), urlRaw = val("url"), waRaw = val("wa");
+      const url = urlRaw ? toTarget(urlRaw) : "";
+      const wa = waRaw === "-" ? "-" : (waRaw ? normWa(waRaw) : "");
+      const bad = [];
+      if (!secret) bad.push("secret");
+      if (urlRaw && !url) bad.push("url");
+      if (waRaw && !wa) bad.push("wa");
+      if (!urlRaw && !waRaw) bad.push("url", "wa");
+      if (bad.length) throw new BadData(bad);
+      const ok = await rpc("update_card", { p_code: code, p_secret: secret, p_url: url, p_wa: wa });
+      if (!ok) throw new BadData(["secret"]);
+      msg.className = "msg ok"; msg.textContent = "Data kartu berhasil diubah.";
     }
   });
+}
+
+function ratingView(card) {
+  show(`
+    <h1>Bagaimana pengalamanmu?</h1>
+    <p>Ketuk bintang untuk memberi penilaian.</p>
+    <div class="stars">
+      ${[1, 2, 3, 4, 5].map(n => `<button class="star" data-n="${n}" aria-label="${n} bintang">★</button>`).join("")}
+    </div>`);
+  app.querySelectorAll(".star").forEach(b => b.addEventListener("click", () => {
+    const n = Number(b.dataset.n);
+    if (n >= 4) return go(card.review_url);
+    lowRatingView(card, n);
+  }));
+}
+
+function lowRatingView(card, n) {
+  const text = encodeURIComponent(`Halo, saya memberi ${n} bintang. Saya ingin menyampaikan `);
+  show(`
+    <h1>Mohon maaf kurang berkesan</h1>
+    <p>Mau ceritakan langsung ke pemilik toko? Masukanmu akan kami baca.</p>
+    <a class="btn" href="https://wa.me/${card.wa}?text=${text}">Chat WhatsApp</a>
+    <a class="btn alt" href="${card.review_url}">Tulis ulasan di Google</a>`);
 }
 
 async function route() {
   const parts = location.pathname.split("/").filter(Boolean);
   if (parts[0] !== "c" || !parts[1]) {
-    show(`<h1>Kartu Ulasan Google</h1><p>Tap atau scan kartu untuk memulai.</p>`);
+    show(`<h1>Kartu Ulasan</h1><p>Tap atau scan kartu untuk memulai.</p>`);
     return;
   }
   const code = decodeURIComponent(parts[1]).toUpperCase();
@@ -143,12 +204,15 @@ async function route() {
     const rows = await rpc("get_card", { p_code: code });
     if (!rows.length) return show(`<h1>Kartu tidak valid</h1><p>Kode kartu ini tidak ditemukan.</p>`);
     const card = rows[0];
-    if (card.active && validUrl(card.review_url)) return go(card.review_url);
-    activation(code);
+    if (!card.active) return activation(code);
+    if (!validUrl(card.review_url)) return show(`<h1>Terjadi kendala</h1><p class="err">Tujuan kartu belum valid. Hubungi pemilik kartu.</p>`);
+    if (card.wa && /^\d{10,15}$/.test(card.wa)) return ratingView(card);
+    go(card.review_url);
   } catch (err) {
-    show(`<h1>Terjadi kendala</h1><p class="err">${err.message}. Coba scan ulang.</p>`);
+    show(`<h1>Terjadi kendala</h1><p class="err">${err.message}</p>`);
   }
 }
 route();
 </script>
 </body>
+</html>
