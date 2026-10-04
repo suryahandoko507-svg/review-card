@@ -23,6 +23,7 @@
   .err{color:var(--err)} .ok{color:var(--accent)}
   .small{margin-top:18px;font-size:.9rem}
   a{color:var(--accent)}
+  .hint{margin:6px 0 0;font-size:.88rem;color:var(--mute)}
 </style>
 </head>
 <body>
@@ -48,6 +49,18 @@ function validUrl(u) {
   catch { return false; }
 }
 
+const FINDER = "https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder";
+const HINT = `Tempel <b>Place ID</b> toko (contoh: ChIJ...) atau link tujuan (https://...). <a href="${FINDER}" target="_blank" rel="noopener">Cari Place ID toko di sini</a>`;
+
+// Link biasa dipakai apa adanya; Place ID diubah jadi link tulis ulasan Google
+function toTarget(input) {
+  const v = input.trim();
+  if (/^https?:\/\//i.test(v)) return validUrl(v) ? v : null;
+  if (/^[A-Za-z0-9_-]{20,}$/.test(v)) return "https://search.google.com/local/writereview?placeid=" + v;
+  return null;
+}
+const BAD_TARGET = "Isi dengan Place ID (contoh: ChIJ...) atau link lengkap yang diawali https://";
+
 function go(url) { window.location.replace(url); }
 
 function show(html) { app.innerHTML = html; }
@@ -57,7 +70,8 @@ function formView({ title, desc, fields, button, onSubmit, footer }) {
     <h1>${title}</h1><p>${desc}</p>
     <form id="f" novalidate>
       ${fields.map(f => `<label for="${f.id}">${f.label}</label>
-        <input id="${f.id}" type="${f.type}" placeholder="${f.ph || ""}" autocomplete="off" required>`).join("")}
+        <input id="${f.id}" type="${f.type}" placeholder="${f.ph || ""}" autocomplete="off" required>
+        ${f.hint ? `<p class="hint">${f.hint}</p>` : ""}`).join("")}
       <button type="submit">${button}</button>
       <div class="msg" id="msg" role="status"></div>
     </form>
@@ -80,15 +94,15 @@ const val = id => document.getElementById(id).value.trim();
 async function activation(code) {
   formView({
     title: "Aktifkan kartu ini",
-    desc: "Masukkan link Google Maps toko dan buat kode rahasia untuk mengubah link nanti.",
+    desc: "Masukkan Place ID toko (atau link tujuan) dan buat kode rahasia untuk mengubahnya nanti.",
     fields: [
-      { id: "url", label: "Link Google Maps toko", type: "url", ph: "https://maps.app.goo.gl/..." },
+      { id: "url", label: "Place ID atau link tujuan", type: "text", ph: "ChIJ... atau https://...", hint: HINT },
       { id: "secret", label: "Kode rahasia", type: "password", ph: "Minimal 4 karakter" }
     ],
     button: "Aktifkan kartu",
     onSubmit: async msg => {
-      const url = val("url"), secret = val("secret");
-      if (!validUrl(url)) throw new Error("Link tidak valid. Tempel link lengkap yang diawali https://");
+      const url = toTarget(val("url")), secret = val("secret");
+      if (!url) throw new Error(BAD_TARGET);
       if (secret.length < 4) throw new Error("Kode rahasia minimal 4 karakter.");
       const ok = await rpc("activate_card", { p_code: code, p_url: url, p_secret: secret });
       if (!ok) throw new Error("Kartu ini sudah aktif.");
@@ -100,19 +114,19 @@ async function activation(code) {
 
 function editor(code) {
   formView({
-    title: "Ubah link toko",
-    desc: "Masukkan kode rahasia kartu dan link Google Maps yang baru.",
+    title: "Ubah tujuan kartu",
+    desc: "Masukkan kode rahasia kartu dan Place ID atau link tujuan yang baru.",
     fields: [
       { id: "secret", label: "Kode rahasia", type: "password" },
-      { id: "url", label: "Link Google Maps baru", type: "url", ph: "https://maps.app.goo.gl/..." }
+      { id: "url", label: "Place ID atau link tujuan baru", type: "text", ph: "ChIJ... atau https://...", hint: HINT }
     ],
     button: "Simpan link baru",
     onSubmit: async msg => {
-      const url = val("url"), secret = val("secret");
-      if (!validUrl(url)) throw new Error("Link tidak valid. Tempel link lengkap yang diawali https://");
+      const url = toTarget(val("url")), secret = val("secret");
+      if (!url) throw new Error(BAD_TARGET);
       const ok = await rpc("update_card", { p_code: code, p_secret: secret, p_url: url });
       if (!ok) throw new Error("Kode rahasia salah.");
-      msg.className = "msg ok"; msg.textContent = "Link berhasil diubah.";
+      msg.className = "msg ok"; msg.textContent = "Tujuan kartu berhasil diubah.";
     }
   });
 }
@@ -138,4 +152,3 @@ async function route() {
 route();
 </script>
 </body>
-</html>
