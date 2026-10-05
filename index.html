@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
 <title>Kartu Ulasan</title>
 <style>
   :root{color-scheme:light;--ink:#111827;--mute:#6b7280;--line:#e5e7eb;--blue:#2563eb;--blue-d:#1d4ed8;--err:#dc2626}
@@ -31,6 +32,16 @@
   .star{flex:1;font-size:2rem;line-height:1;padding:12px 0;background:#fff;color:#d1d5db;border:1px solid var(--line);border-radius:10px;cursor:pointer}
   .star:hover,.star:active,.star:focus{color:#f59e0b;border-color:#f59e0b;outline:none}
   .credit{margin-top:16px;text-align:center;font-size:.8rem;color:#9ca3af}
+  /* Tema gelap untuk halaman pelanggan (bintang) */
+  body.dark{background:#121212;color:#f8fafc}
+  body.dark .box{background:#1e1e24;border-color:#2e2e38}
+  body.dark h1{color:#f8fafc}
+  body.dark p{color:#94a3b8}
+  body.dark .star{background:#26262e;border-color:#3a3a46;color:#fbbf24}
+  body.dark .star:hover,body.dark .star:active,body.dark .star:focus{background:#2e2e38;border-color:#fbbf24;color:#fbbf24}
+  body.dark .btn.alt{background:transparent;color:#e2e8f0;border-color:#3a3a46}
+  body.dark .btn.alt:hover{background:#26262e}
+  body.dark .credit{color:#64748b}
 </style>
 </head>
 <body>
@@ -84,7 +95,12 @@ class BadData extends Error {
 }
 
 function go(url) { window.location.replace(url); }
-function show(html) { app.innerHTML = html; }
+function setDark(on) {
+  document.body.classList.toggle("dark", on);
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = on ? "#121212" : "#ffffff";
+}
+function show(html, dark = false) { setDark(dark); app.innerHTML = html; }
 const val = id => document.getElementById(id).value.trim();
 
 function formView({ title, desc, fields, button, onSubmit }) {
@@ -175,7 +191,7 @@ function ratingView(card) {
     <p>Ketuk bintang untuk memberi penilaian.</p>
     <div class="stars">
       ${[1, 2, 3, 4, 5].map(n => `<button class="star" data-n="${n}" aria-label="${n} bintang">★</button>`).join("")}
-    </div>`);
+    </div>`, true);
   app.querySelectorAll(".star").forEach(b => b.addEventListener("click", () => {
     const n = Number(b.dataset.n);
     if (n >= 4) return go(card.review_url);
@@ -189,7 +205,7 @@ function lowRatingView(card, n) {
     <h1>Mohon maaf kurang berkesan</h1>
     <p>Mau ceritakan langsung ke pemilik toko? Masukanmu akan kami baca.</p>
     <a class="btn" href="https://wa.me/${card.wa}?text=${text}">Chat WhatsApp</a>
-    <a class="btn alt" href="${card.review_url}">Tulis ulasan di Google</a>`);
+    <a class="btn alt" href="${card.review_url}">Tulis ulasan di Google</a>`, true);
 }
 
 async function route() {
