@@ -32,6 +32,8 @@
   .star{flex:1;font-size:2rem;line-height:1;padding:12px 0;background:#fff;color:#d1d5db;border:1px solid var(--line);border-radius:10px;cursor:pointer}
   .star:hover,.star:active,.star:focus{color:#f59e0b;border-color:#f59e0b;outline:none}
   .credit{margin-top:16px;text-align:center;font-size:.8rem;color:#9ca3af}
+  .center{text-align:center}
+  .brand{display:block;margin:0 auto 14px;border-radius:18px}
   /* Tema gelap untuk halaman pelanggan (bintang) */
   body.dark{background:#121212;color:#f8fafc}
   body.dark .box{background:#1e1e24;border-color:#2e2e38}
@@ -137,7 +139,7 @@ async function activation(code) {
     fields: [
       { id: "url", label: "Place ID atau link tujuan", type: "text", ph: "ChIJ... atau https://...", hint: HINT_URL },
       { id: "wa", label: "Nomor WhatsApp (opsional)", type: "tel", mode: "tel", ph: "08123456789",
-        hint: "Pelanggan yang memberi bintang 1-3 bisa memilih chat ke nomor ini. Kosongkan jika tidak mau memakai fitur ini." },
+        hint: "Pelanggan yang memberi bintang 1-2 langsung diarahkan ke chat WhatsApp ini, bintang 3-5 ke ulasan Google. Kosongkan jika tidak mau memakai fitur ini. Perhatian: memisahkan penilaian rendah dari ulasan publik tidak sejalan dengan kebijakan Google, dan risikonya ada pada profil toko." },
       { id: "secret", label: "Kode rahasia", type: "password", ph: "Minimal 6 karakter" }
     ],
     button: "Aktifkan kartu",
@@ -185,27 +187,24 @@ function editor(code) {
   });
 }
 
+const ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAMAAADQmBKKAAABgFBMVEVgoohjYVSlaV+Unar562PMV2b////f39waIxpcKTnQ071EOkVsYDJhfKKqn1VsxaDCvMM8Y18eQTh9gn6FfIeNiD69vsHEuVd8p+e5xrq/wMLEv7P+/v5hvZLyW2x4otL////45VsYHCUmJS6wc1TS08/Ny71lxZhevZERFRoJCxTzYXL252UbIirp6esvNTlTlnrMysR5enllfJrQWGk1VkpcwZJHfGZPKDNGR04rGyWIiI0yQlFqZjqDpc5bVS+URFJKWWlyN0SpSVn///////+1tbZmaGv///+AnMGIPEsbNzElFxv///85Z1hNiHCVlpi3U2NnMzp7ntFSVVgICyWop6qQZVW1TGL03Wn///84O0VQNjZQSixyVkckQjoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUCXCAAAAYHRSTlP///////9G/////////////////////////////v///wH//////////////////////////////////////////////9B0//8y/////7T///////////////+B//////9cCNUaAAANyklEQVR42s2cCVvaShfHA0jV2uX2bu8Ges0YwkwIEQiYBN8WAcEXEVEpanH5/t/inSUJWSZhMfZ6npZHLcKv5/zPMjMkwl/R9u7HRbebS9i63Ysf72LeVIj4+dnpRe4V7eL0bCWg027u1a17ujTQj9xPsh9LAZ3mfqKdLgR61839VOu+iwc6zf10O40Dusj9DXYRCXTWzf0t1j3jA5290vttVnpTbL2KFPmUMx7Qq/BUmieaCm1TtUmzV15AJLwiT6WqQTQ0rgetDrbWoG1YCIF+L5bIBUpcP1MTQmOQ1hVF2cV/8F9F0bMDA6LZOOymbhAo6fyaHsNh+4qS+EzZ1VsAaePIXBNepVtIJ8ga6EEYlwkj7fwS0UeE1xBQRkTtAI7i9ZWSbVlijS8j4RUE1EcgHfBKp9Xq3FHv2KYbyNzkyUhIvGFsmuhaD0ZpG2f9sKN0OrrjKWWAQIXTRChQovLRYCsk5V09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";
+
 function ratingView(card) {
   show(`
-    <h1>Bagaimana pengalamanmu?</h1>
-    <p>Ketuk bintang untuk memberi penilaian.</p>
+    <div class="center">
+      <img class="brand" src="${ICON}" width="80" height="80" alt="">
+      <h1>Bagaimana pengalamanmu?</h1>
+      <p>Ketuk bintang untuk memberi penilaian.</p>
+    </div>
     <div class="stars">
       ${[1, 2, 3, 4, 5].map(n => `<button class="star" data-n="${n}" aria-label="${n} bintang">★</button>`).join("")}
     </div>`, true);
   app.querySelectorAll(".star").forEach(b => b.addEventListener("click", () => {
     const n = Number(b.dataset.n);
-    if (n >= 4) return go(card.review_url);
-    lowRatingView(card, n);
+    if (n >= 3) return go(card.review_url);
+    const text = encodeURIComponent(`Halo, saya memberi ${n} bintang. Saya ingin menyampaikan `);
+    window.location.href = `https://wa.me/${card.wa}?text=${text}`;
   }));
-}
-
-function lowRatingView(card, n) {
-  const text = encodeURIComponent(`Halo, saya memberi ${n} bintang. Saya ingin menyampaikan `);
-  show(`
-    <h1>Mohon maaf kurang berkesan</h1>
-    <p>Mau ceritakan langsung ke pemilik toko? Masukanmu akan kami baca.</p>
-    <a class="btn" href="https://wa.me/${card.wa}?text=${text}">Chat WhatsApp</a>
-    <a class="btn alt" href="${card.review_url}">Tulis ulasan di Google</a>`, true);
 }
 
 async function route() {
